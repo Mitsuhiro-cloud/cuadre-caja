@@ -1,0 +1,13 @@
+{
+  "name": "cuadre-de-caja",
+  "version": "1.0.0",
+  "description": "PWA para control de efectivo, prestamos entre tiendas y tickets. Reemplaza un Excel manual.",
+  "scripts": {
+    "test": "node test-app.js",
+    "start": "python3 -m http.server 8000"
+  },
+  "devDependencies": {
+    "jsdom": "^29.1.1"
+  },
+  "private": true
+}

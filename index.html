@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#165039">
+<meta name="description" content="Cuadre de caja, prestamos entre tiendas y tickets de mantenimiento">
+<title>Cuadre de Caja</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icono.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icono-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Cuadre">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="app">
+  <h1>Cuadre de Caja</h1>
+  <p id="subtitulo">Control de efectivo, prestamos y tickets</p>
+</header>
+
+<main>
+  <div id="aviso" class="aviso"></div>
+
+  <!-- ============ CUADRE ============ -->
+  <section id="vista-cuadre">
+    <div class="card">
+      <h2>Datos del cuadre</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="c-fecha">Fecha</label>
+          <input type="date" id="c-fecha">
+        </div>
+        <div>
+          <label for="c-nombre">Nombre</label>
+          <input type="text" id="c-nombre" placeholder="Nombre" autocomplete="off">
+        </div>
+        <div>
+          <label for="c-turno">Turno</label>
+          <select id="c-turno">
+            <option value="Apertura">Apertura</option>
+            <option value="Cierre">Cierre</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Conteo por denominacion</h2>
+      <div id="c-denominaciones"></div>
+    </div>
+
+    <div class="card">
+      <h2>Resumen</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="c-vales">Vales / Facturas</label>
+          <input type="number" id="c-vales" inputmode="decimal" step="0.01" min="0" value="0" placeholder="0.00">
+        </div>
+        <div>
+          <label for="c-declarado">Declarado (opcional)</label>
+          <input type="number" id="c-declarado" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+        </div>
+      </div>
+
+      <div class="totales">
+        <div class="renglon">
+          <span>Efectivo contado</span>
+          <span class="monto" id="c-t-contado">$0.00</span>
+        </div>
+        <div class="renglon">
+          <span>Vales / Facturas</span>
+          <span class="monto" id="c-t-vales">$0.00</span>
+        </div>
+        <div class="renglon">
+          <span>Declarado</span>
+          <span class="monto" id="c-t-declarado">$0.00</span>
+        </div>
+        <div class="renglon diferencia">
+          <span>Diferencia</span>
+          <span class="monto" id="c-t-dif">$0.00</span>
+        </div>
+      </div>
+      <p class="detalle" id="c-nota-dif"></p>
+
+      <div class="fila-btn">
+        <button class="btn" id="c-guardar">Guardar cuadre</button>
+        <button class="btn sec" id="c-limpiar">Limpiar</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HISTORIAL ============ -->
+  <section id="vista-historial" class="oculto">
+    <div class="card">
+      <h2>Historial de cuadres</h2>
+      <div class="filtros" id="h-filtros"></div>
+      <div class="fila-btn" style="margin-top:0">
+        <button class="btn sec" id="h-exportar">Exportar CSV</button>
+      </div>
+    </div>
+    <div id="h-resumen" class="card"></div>
+    <div class="lista" id="h-lista"></div>
+  </section>
+
+  <!-- ============ PRESTAMOS ============ -->
+  <section id="vista-prestamos" class="oculto">
+    <div class="card">
+      <h2 id="pr-titulo">Nuevo prestamo</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="pr-fecha">Fecha</label>
+          <input type="date" id="pr-fecha">
+        </div>
+        <div>
+          <label for="pr-importe">Importe</label>
+          <input type="number" id="pr-importe" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+        </div>
+        <div>
+          <label for="pr-origen">Tienda origen</label>
+          <select id="pr-origen"></select>
+        </div>
+        <div>
+          <label for="pr-destino">Tienda destino</label>
+          <select id="pr-destino"></select>
+        </div>
+      </div>
+      <div class="mt">
+        <label for="pr-concepto">Concepto</label>
+        <textarea id="pr-concepto" placeholder="Para que se pide el dinero"></textarea>
+      </div>
+      <div class="mt">
+        <label for="pr-estado">Estado</label>
+        <select id="pr-estado">
+          <option value="Pendiente">Pendiente</option>
+          <option value="Devuelto">Devuelto</option>
+        </select>
+      </div>
+      <div class="fila-btn">
+        <button class="btn" id="pr-guardar">Guardar</button>
+        <button class="btn sec oculto" id="pr-cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Prestamos</h2>
+      <div class="filtros" id="pr-filtros"></div>
+      <div class="fila-btn" style="margin-top:0">
+        <button class="btn sec" id="pr-exportar">Exportar CSV</button>
+      </div>
+    </div>
+    <div class="lista" id="pr-lista"></div>
+  </section>
+
+  <!-- ============ TICKETS ============ -->
+  <section id="vista-tickets" class="oculto">
+    <div class="card">
+      <h2 id="tk-titulo">Nuevo ticket</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="tk-fecha">Fecha</label>
+          <input type="date" id="tk-fecha">
+        </div>
+        <div>
+          <label for="tk-numero">Numero de ticket</label>
+          <input type="text" id="tk-numero" placeholder="38967-00239" autocomplete="off">
+        </div>
+        <div>
+          <label for="tk-equipo">Equipo</label>
+          <input type="text" id="tk-equipo" placeholder="HORNO NUVU" autocomplete="off">
+        </div>
+        <div>
+          <label for="tk-estado">Estado</label>
+          <select id="tk-estado">
+            <option value="Abierto">Abierto</option>
+            <option value="En curso">En curso</option>
+            <option value="Cerrado">Cerrado</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt">
+        <label for="tk-comentarios">Comentarios</label>
+        <textarea id="tk-comentarios" placeholder="Que se necesita"></textarea>
+      </div>
+      <div class="fila-btn">
+        <button class="btn" id="tk-guardar">Guardar</button>
+        <button class="btn sec oculto" id="tk-cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tickets</h2>
+      <div class="filtros" id="tk-filtros"></div>
+      <div class="fila-btn" style="margin-top:0">
+        <button class="btn sec" id="tk-exportar">Exportar CSV</button>
+      </div>
+    </div>
+    <div class="lista" id="tk-lista"></div>
+  </section>
+
+  <!-- ============ TIENDAS ============ -->
+  <section id="vista-tiendas" class="oculto">
+    <div class="card">
+      <h2 id="td-titulo">Nueva tienda</h2>
+      <div class="grid grid-2">
+        <div>
+          <label for="td-id">CECO</label>
+          <input type="text" id="td-id" inputmode="numeric" placeholder="38408" autocomplete="off">
+        </div>
+        <div>
+          <label for="td-nombre">Nombre</label>
+          <input type="text" id="td-nombre" placeholder="BELISARIO DOMINGUEZ" autocomplete="off">
+        </div>
+      </div>
+      <div class="fila-btn">
+        <button class="btn" id="td-guardar">Guardar</button>
+        <button class="btn sec oculto" id="td-cancelar">Cancelar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Denominaciones activas</h2>
+      <p class="detalle" style="margin-top:0">Separa con coma. Ejemplo: 1000, 500, 200, 0.5</p>
+      <input type="text" id="td-denoms" placeholder="1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5">
+      <div class="fila-btn">
+        <button class="btn sec" id="td-guardar-denoms">Actualizar</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tiendas</h2>
+      <div class="lista" id="td-lista"></div>
+    </div>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-vista="cuadre" class="activo"><span class="ico">💰</span>Cuadre</button>
+  <button data-vista="historial"><span class="ico">🗂</span>Historial</button>
+  <button data-vista="prestamos"><span class="ico">🤝</span>Prestamos</button>
+  <button data-vista="tickets"><span class="ico">🔧</span>Tickets</button>
+  <button data-vista="tiendas"><span class="ico">🏬</span>Tiendas</button>
+</nav>
+
+<script src="js/storage.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
