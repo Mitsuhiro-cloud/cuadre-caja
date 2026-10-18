@@ -104,14 +104,15 @@ const Cuadre = {
     this.conteos = {};
     cont.innerHTML = DB.denominaciones.todas().map((d) => {
       this.conteos[d] = 0;
-      return '<div class="denominacion" data-den="' + d + '">' +
-        '<span class="etq">$' + denom(d) + '</span>' +
+      const de = esc(d);
+      return '<div class="denominacion" data-den="' + de + '">' +
+        '<span class="etq">$' + esc(denom(d)) + '</span>' +
         '<div class="ctrl">' +
-          '<button type="button" data-acc="menos" aria-label="Quitar ' + d + '">−</button>' +
-          '<input type="number" inputmode="numeric" min="0" step="1" value="0" data-den-input="' + d + '">' +
-          '<button type="button" data-acc="mas" aria-label="Agregar ' + d + '">+</button>' +
+          '<button type="button" data-acc="menos" aria-label="Quitar ' + de + '">−</button>' +
+          '<input type="number" inputmode="numeric" min="0" step="1" value="0" data-den-input="' + de + '">' +
+          '<button type="button" data-acc="mas" aria-label="Agregar ' + de + '">+</button>' +
         '</div>' +
-        '<span class="sub" data-sub="' + d + '">$0.00</span>' +
+        '<span class="sub" data-sub="' + de + '">$0.00</span>' +
       '</div>';
     }).join('');
 
@@ -650,6 +651,8 @@ const Tiendas = {
     $('#td-guardar-denoms').addEventListener('click', () => {
       const lista = $('#td-denoms').value.split(',').map((s) => s.trim()).filter(Boolean);
       if (!lista.length) { avisar('Escribe al menos una denominacion.'); return; }
+      const invalidas = lista.filter((s) => !/^\d+(\.\d+)?$/.test(s));
+      if (invalidas.length) { avisar('Solo numeros en las denominaciones. Revisa: ' + invalidas.slice(0, 3).join(', ')); return; }
       DB.denominaciones.guardar(lista);
       avisar('Denominaciones actualizadas.');
       Cuadre.pintarDenominaciones();

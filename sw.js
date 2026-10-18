@@ -1,4 +1,4 @@
-const CACHE = 'cuadre-caja-v2';
+const CACHE = 'cuadre-caja-v3';
 const ARCHIVOS = [
   './',
   './index.html',

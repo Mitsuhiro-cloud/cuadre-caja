@@ -19,7 +19,7 @@ sin CDN, sin paso de compilación.
 | **Demo en vivo** | <!-- AGREGA TU URL AQUÍ --> |
 | **Tecnologías** | HTML5 · CSS3 · JavaScript (ES6+) · PWA |
 | **Peso total** | ~1,600 líneas de código |
-| **Pruebas** | 163 automáticas, todas en verde |
+| **Pruebas** | 168 automáticas, todas en verde |
 | **Dependencias** | ninguna |
 
 ---
@@ -157,7 +157,7 @@ de tu computadora: `http://192.168.X.X:8000`
 
 ## Pruebas
 
-El proyecto incluye una suite de **163 pruebas automáticas** que verifican los
+El proyecto incluye una suite de **168 pruebas automáticas** que verifican los
 cálculos de efectivo, la validación de datos, el historial, los préstamos, los
 tickets, el catálogo de tiendas, la migración de datos antiguos y la
 accesibilidad de los colores de estado.
@@ -167,7 +167,7 @@ npm install     # instala jsdom (única dependencia, solo para pruebas)
 npm test
 ```
 
-Resultado esperado: `*** TODAS LAS PRUEBAS PASARON ***` (163 pruebas).
+Resultado esperado: `*** TODAS LAS PRUEBAS PASARON ***` (168 pruebas).
 
 ---
 

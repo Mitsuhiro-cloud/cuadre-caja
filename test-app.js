@@ -402,6 +402,21 @@ $('#td-denoms').value = '1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5';
 click($('#td-guardar-denoms'));
 check('restauradas 11', Storage.denominaciones.todas().length === 11);
 
+console.log('\n== SEGURIDAD: denominaciones ==');
+$('#td-denoms').value = '500, <img src=x>, 100';
+click($('#td-guardar-denoms'));
+check('no guarda denominacion invalida', Storage.denominaciones.todas().length === 11, Storage.denominaciones.todas().join(','));
+check('avisa denominacion invalida', /numeros/i.test($('#aviso').textContent), $('#aviso').textContent);
+$('#td-denoms').value = '500, 200';
+click($('#td-guardar-denoms'));
+check('guarda las validas si hay invalidas rechazadas', Storage.denominaciones.todas().join(',') === '500,200', Storage.denominaciones.todas().join(','));
+Storage.denominaciones.guardar(['1000', '"><img id="pwn" src=x onerror="1">']);
+Cuadre.pintarDenominaciones();
+check('XSS de denominacion escapado', document.querySelector('#c-denominaciones #pwn') === null, $('#c-denominaciones').innerHTML.slice(0, 120));
+$('#td-denoms').value = '1000, 500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5';
+click($('#td-guardar-denoms'));
+check('denominaciones restauradas tras pruebas', Storage.denominaciones.todas().length === 11);
+
 console.log('\n== NAVEGACION ==');
 const tabs = $$('nav.tabs button');
 check('5 tabs', tabs.length === 5);

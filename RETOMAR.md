@@ -3,7 +3,7 @@
 Fecha: hoy (proyecto listo para desplegar).
 
 ## Estado
-- El CODIGO de caja-stbx esta TERMINADO (todas las tareas del PLAN.md en ✓, 163 pruebas en verde).
+- El CODIGO de caja-stbx esta TERMINADO (todas las tareas del PLAN.md en ✓, 168 pruebas en verde).
 - NO tiene .git todavia (nunca se inicio el repo). Falta SOLO el despliegue, no programar.
 
 ## Que seguir (en orden)
