@@ -16,7 +16,7 @@ sin CDN, sin paso de compilación.
 
 | | |
 |---|---|
-| **Demo en vivo** | <!-- AGREGA TU URL AQUÍ --> |
+| **Demo en vivo** | https://mitsuhiro-cloud.github.io/cuadre-caja/ |
 | **Tecnologías** | HTML5 · CSS3 · JavaScript (ES6+) · PWA |
 | **Peso total** | ~1,600 líneas de código |
 | **Pruebas** | 168 automáticas, todas en verde |
