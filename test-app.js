@@ -33,11 +33,20 @@ window.alert = () => {};
 const descargas = [];
 window.URL.createObjectURL = () => 'blob:fake';
 window.URL.revokeObjectURL = () => {};
+const origBlob = window.Blob;
+const blobs = [];
+window.Blob = function (partes, opts) {
+  blobs.push(String(partes.join('')));
+  return new origBlob(partes, opts);
+};
 const origCreate = document.createElement.bind(document);
 document.createElement = (tag) => {
   const el = origCreate(tag);
   if (tag === 'a') {
-    el.click = () => descargas.push({ nombre: el.download, href: el.href });
+    el.click = () => {
+      descargas.push({ nombre: el.download, href: el.href, contenido: blobs[blobs.length - 1] || '' });
+      blobs.length = 0;
+    };
   }
   return el;
 };
@@ -85,7 +94,7 @@ check('etiqueta $1000 sin decimales', document.querySelector('.denominacion[data
 check('11 filas de denominacion', $$('#c-denominaciones .denominacion').length === 11, $$('#c-denominaciones .denominacion').length);
 check('ya NO hay datalist de nombres', !document.querySelector('#c-encargados'));
 check('ya NO hay lista desplegable de DATOS semilla', $$('#vista-cuadre option').length === 2, $$('#vista-cuadre option').length);
-check('un solo campo de texto (Nombre)', document.querySelectorAll('#vista-cuadre input[type="text"]').length === 1);
+check('campos de texto: Nombre + concepto de factura', document.querySelectorAll('#vista-cuadre input[type="text"]').length === 2, document.querySelectorAll('#vista-cuadre input[type="text"]').length);
 check('el campo se llama c-nombre', !!document.querySelector('#c-nombre'));
 check('ya no existe c-encargado', !document.querySelector('#c-encargado'));
 check('Turno es un select con Apertura y Cierre', (() => {
@@ -131,10 +140,20 @@ inpNeg.value = '3.7';
 inpNeg.dispatchEvent(new window.Event('input', { bubbles: true }));
 check('fraccion -> floor 3', inpNeg.value === '3', inpNeg.value);
 
-console.log('\n== CUADRE: vales / real / diferencia ==');
-$('#c-vales').value = '95.50';
-$('#c-vales').dispatchEvent(new window.Event('input', { bubbles: true }));
-check('vales en pantalla', $('#c-t-vales').textContent === '$95.50', $('#c-t-vales').textContent);
+console.log('\n== CUADRE: facturas (vales) / declarado / diferencia ==');
+check('input unico de vales eliminado', !document.querySelector('#c-vales'));
+check('hay formulario de facturas', !!document.querySelector('#c-fac-concepto') && !!document.querySelector('#c-fac-importe') && !!document.querySelector('#c-fac-agregar'));
+const agregarFac = (concepto, importe) => {
+  $('#c-fac-concepto').value = concepto;
+  $('#c-fac-importe').value = importe;
+  click($('#c-fac-agregar'));
+};
+agregarFac('Factura 123', '60.50');
+check('factura agregada al lista', $$('#c-facturas-lista .factura').length === 1, $$('#c-facturas-lista .factura').length);
+check('total vales = 60.50', $('#c-t-vales').textContent === '$60.50', $('#c-t-vales').textContent);
+agregarFac('Vale gasolina', '35');
+check('2 facturas', $$('#c-facturas-lista .factura').length === 2, $$('#c-facturas-lista .factura').length);
+check('total vales = 95.50 (60.50+35)', $('#c-t-vales').textContent === '$95.50', $('#c-t-vales').textContent);
 check('sin Real la diferencia usa contado-vales', $('#c-t-dif').textContent === '-$1,355.00', $('#c-t-dif').textContent);
 check('nota explica que falta el Declarado', /declarado/i.test($('#c-nota-dif').textContent) && !/\bReal\b/.test($('#c-nota-dif').textContent), $('#c-nota-dif').textContent);
 $('#c-declarado').value = '1355';
@@ -147,6 +166,24 @@ $('#c-declarado').dispatchEvent(new window.Event('input', { bubbles: true }));
 check('Declarado = 1290 -> -65 faltante', $('#c-t-dif').textContent === '-$65.00', $('#c-t-dif').textContent);
 check('clase neg', $('#c-t-dif').className.includes('neg'));
 check('nota faltante', /faltante/i.test($('#c-nota-dif').textContent), $('#c-nota-dif').textContent);
+
+console.log('\n== CUADRE: borrar factura ==');
+click($$('#c-facturas-lista [data-fac-del]')[1]);
+check('1 factura tras borrar', $$('#c-facturas-lista .factura').length === 1, $$('#c-facturas-lista .factura').length);
+check('total vales = 60.50 tras borrar', $('#c-t-vales').textContent === '$60.50', $('#c-t-vales').textContent);
+click($$('#c-facturas-lista [data-fac-del]')[0]);
+check('0 facturas', $$('#c-facturas-lista .factura').length === 0, $$('#c-facturas-lista .factura').length);
+check('total vales = 0', $('#c-t-vales').textContent === '$0.00', $('#c-t-vales').textContent);
+check('mensaje de vacio', /Sin facturas/.test($('#c-facturas-lista').textContent), $('#c-facturas-lista').textContent.slice(0, 80));
+check('diferencia recalculada al vaciar facturas', $('#c-t-dif').textContent === '-$160.50', $('#c-t-dif').textContent);
+// reagregar para el resto de las pruebas
+agregarFac('Factura 123', '60.50');
+agregarFac('Vale gasolina', '35');
+check('reagregadas: total 95.50', $('#c-t-vales').textContent === '$95.50', $('#c-t-vales').textContent);
+console.log('\n== CUADRE: importe invalido rechazado ==');
+agregarFac('Sin importe', '0');
+check('importe 0 no agrega', $$('#c-facturas-lista .factura').length === 2, $$('#c-facturas-lista .factura').length);
+check('avisa importe', /importe/i.test($('#aviso').textContent), $('#aviso').textContent);
 
 console.log('\n== RENOMBRE REAL -> DECLARADO ==');
 check('el campo se llama c-declarado', !!document.querySelector('#c-declarado'));
@@ -169,13 +206,15 @@ click($('#c-guardar'));
 const c1 = Storage.cuadres.todos()[0];
 check('1 cuadre guardado', Storage.cuadres.todos().length === 1, Storage.cuadres.todos().length);
 check('efectivoContado correcto', c1.efectivoContado === contado, c1.efectivoContado);
-check('vales guardados', c1.vales === 95.5);
+check('vales guardados como total', c1.vales === 95.5, c1.vales);
+check('facturas guardadas como array', Array.isArray(c1.facturas) && c1.facturas.length === 2, JSON.stringify(c1.facturas));
+check('factura con concepto e importe', c1.facturas[0].concepto === 'Factura 123' && c1.facturas[0].importe === 60.5, JSON.stringify(c1.facturas[0]));
 check('declarado guardado', c1.declarado === 1290);
 check('diferencia -65', c1.diferencia === -65, c1.diferencia);
 check('nombre guardado', c1.nombre === 'Paola', c1.nombre);
 check('turno guardado', c1.turno === 'Cierre', c1.turno);
 check('ya no se guarda campo encargado', c1.encargado === undefined, c1.encargado);check('fecha guardada', c1.fecha === '2026-09-30');
-check('form reiniciado tras guardar', $('#c-vales').value === '0' && $('#c-nombre').value === '', $('#c-nombre').value);
+check('form reiniciado tras guardar', Cuadre.facturas.length === 0 && $$('#c-facturas-lista .factura').length === 0 && $('#c-nombre').value === '', $('#c-nombre').value);
 check('Turno vuelve a Apertura tras guardar', $('#c-turno').value === 'Apertura', $('#c-turno').value);
 check('denominaciones reiniciadas', document.querySelector('[data-den-input="1000"]').value === '0', document.querySelector('[data-den-input="1000"]').value);
 check('aviso visible', $('#aviso').classList.contains('ver'));
@@ -212,11 +251,17 @@ Historial.pintar();
 console.log('\n== HISTORIAL: detalle y CSV ==');
 descargas.length = 0;
 irA('historial');
+Historial.pintar();
+check('muestra conteo de facturas en el item', /2 facturas/.test($('#h-lista').textContent), $('#h-lista').textContent.slice(0, 200));
 click($$('#h-lista [data-ver]')[0]);
-check('descarga detalle .txt', descargas.length === 1 && /\.txt$/.test(descargas[0].nombre), JSON.stringify(descargas));
+check('descarga detalle .txt', descargas.length === 1 && /\.txt$/.test(descargas[0].nombre), JSON.stringify(descargas.map((d) => d.nombre)));
+check('detalle .txt trae desglose de facturas', /Factura 123: \$60\.50/.test(descargas[0].contenido || '') && /Vale gasolina: \$35\.00/.test(descargas[0].contenido || ''), (descargas[0].contenido || '').slice(0, 400));
 descargas.length = 0;
 click($('#h-exportar'));
-check('descarga cuadres.csv', descargas.length === 1 && /^cuadres_.*\.csv$/.test(descargas[0].nombre), JSON.stringify(descargas));
+check('descarga cuadres.csv', descargas.length === 1 && /^cuadres_.*\.csv$/.test(descargas[0].nombre), JSON.stringify(descargas.map((d) => d.nombre)));
+const csvTxt = descargas[0].contenido || '';
+check('csv encabezado con Detalle facturas', /Detalle facturas/.test(csvTxt.split('\n')[0]), csvTxt.split('\n')[0]);
+check('csv fila trae desglose con pipe', /Factura 123 \$60\.50 \| Vale gasolina \$35\.00/.test(csvTxt), csvTxt.split('\n')[1] || '');
 
 console.log('\n== HISTORIAL: borrar ==');
 click($$('#h-lista [data-borrar]')[0]);
@@ -230,9 +275,9 @@ check('CSV sin datos avisa', /No hay/.test($('#aviso').textContent), $('#aviso')
 $('#c-nombre').value = 'Karla';
 $('#c-turno').value = 'Apertura';
 poner(100, 2);
-$('#c-vales').value = '0';
-$('#c-vales').dispatchEvent(new window.Event('input', { bubbles: true }));
+check('facturas limpias tras borrado previo', Cuadre.facturas.length === 0, Cuadre.facturas.length);
 click($('#c-guardar'));
+check('cuadre sin facturas guarda vales 0', Storage.cuadres.todos()[0].vales === 0 && (Storage.cuadres.todos()[0].facturas || []).length === 0, JSON.stringify(Storage.cuadres.todos()[0].facturas));
 
 console.log('\n== PRESTAMOS ==');
 Prestamos.pintar();

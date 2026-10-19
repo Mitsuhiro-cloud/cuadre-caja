@@ -90,13 +90,25 @@ window.addEventListener('hashchange', () => irA(location.hash.slice(1)));
 
 const Cuadre = {
   conteos: {},
+  facturas: [],
 
   init() {
     $('#c-fecha').value = DB.hoy();
     this.pintarDenominaciones();
-    ['#c-vales', '#c-declarado'].forEach((s) => $(s).addEventListener('input', () => this.recalcular()));
+    $('#c-declarado').addEventListener('input', () => this.recalcular());
+    $('#c-fac-agregar').addEventListener('click', () => this.agregarFactura());
+    ['#c-fac-concepto', '#c-fac-importe'].forEach((s) => {
+      $(s).addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); this.agregarFactura(); }
+      });
+    });
     $('#c-guardar').addEventListener('click', () => this.guardar());
     $('#c-limpiar').addEventListener('click', () => this.limpiar());
+    $('#c-facturas-lista').addEventListener('click', (e) => {
+      const b = e.target.closest('[data-fac-del]');
+      if (b) this.borrarFactura(Number(b.dataset.facDel));
+    });
+    this.pintarFacturas();
   },
 
   pintarDenominaciones() {
@@ -141,10 +153,48 @@ const Cuadre = {
     this.recalcular();
   },
 
+  totalVales() {
+    return this.facturas.reduce((a, f) => a + (Number(f.importe) || 0), 0);
+  },
+
+  agregarFactura() {
+    const concepto = $('#c-fac-concepto').value.trim();
+    const importe = $('#c-fac-importe').value === '' ? 0 : num($('#c-fac-importe').value);
+    if (importe <= 0) { avisar('Captura el importe de la factura.'); return; }
+    this.facturas.push({ concepto: concepto, importe: importe });
+    $('#c-fac-concepto').value = '';
+    $('#c-fac-importe').value = '';
+    this.pintarFacturas();
+    $('#c-fac-concepto').focus();
+  },
+
+  borrarFactura(i) {
+    this.facturas.splice(i, 1);
+    this.pintarFacturas();
+  },
+
+  pintarFacturas() {
+    const cont = $('#c-facturas-lista');
+    if (!this.facturas.length) {
+      cont.innerHTML = '<div class="factura-vacia">Sin facturas. El total queda en $0.00.</div>';
+    } else {
+      cont.innerHTML = this.facturas.map((f, i) =>
+        '<div class="factura">' +
+          '<div class="factura-txt">' +
+            '<span class="factura-concepto">' + (f.concepto ? esc(f.concepto) : '<i>Sin concepto</i>') + '</span>' +
+            '<span class="factura-importe">' + money(f.importe) + '</span>' +
+          '</div>' +
+          '<button type="button" class="factura-borrar" data-fac-del="' + i + '" aria-label="Quitar factura">✕</button>' +
+        '</div>'
+      ).join('');
+    }
+    this.recalcular();
+  },
+
   recalcular() {
     let contado = 0;
     for (const d in this.conteos) contado += Number(d) * this.conteos[d];
-    const vales = num($('#c-vales').value);
+    const vales = this.totalVales();
     const declarado = $('#c-declarado').value === '' ? null : num($('#c-declarado').value);
     const dif = declarado === null ? null : declarado - (contado - vales);
 
@@ -172,7 +222,7 @@ const Cuadre = {
       avisar('Captura al menos un billete o moneda.');
       return;
     }
-    const vales = num($('#c-vales').value);
+    const vales = this.totalVales();
     const declarado = $('#c-declarado').value === '' ? null : num($('#c-declarado').value);
     let contado = 0;
     denoms.forEach((d) => { contado += d.denominacion * d.cantidad; });
@@ -184,6 +234,7 @@ const Cuadre = {
       denominaciones: denoms,
       efectivoContado: contado,
       vales: vales,
+      facturas: this.facturas.slice(),
       declarado: declarado,
       diferencia: declarado === null ? null : declarado - (contado - vales)
     });
@@ -194,7 +245,10 @@ const Cuadre = {
 
   limpiar() {
     this.pintarDenominaciones();
-    $('#c-vales').value = '0';
+    this.facturas = [];
+    this.pintarFacturas();
+    $('#c-fac-concepto').value = '';
+    $('#c-fac-importe').value = '';
     $('#c-declarado').value = '';
     $('#c-nombre').value = '';
     $('#c-turno').value = 'Apertura';
@@ -272,7 +326,9 @@ const Historial = {
         '<div class="cab"><div class="titulo">' + esc(fechaCorta(c.fecha)) + (c.turno ? ' · ' + esc(c.turno) : '') + '</div>' +
         '<span class="pill">Diferencia ' + money(dif) + '</span></div>' +
         (c.nombre ? '<div class="meta">' + esc(c.nombre) + '</div>' : '') +
-        '<div class="detalle">Efectivo contado <b>' + money(c.efectivoContado) + '</b> · Vales <b>' + money(c.vales) + '</b> · Declarado <b>' + (c.declarado === null || c.declarado === undefined ? '—' : money(c.declarado)) + '</b></div>' +
+        '<div class="detalle">Efectivo contado <b>' + money(c.efectivoContado) + '</b> · Vales <b>' + money(c.vales) + '</b>' +
+          ((c.facturas && c.facturas.length) ? ' (' + c.facturas.length + ' factura' + (c.facturas.length === 1 ? '' : 's') + ')' : '') +
+          ' · Declarado <b>' + (c.declarado === null || c.declarado === undefined ? '—' : money(c.declarado)) + '</b></div>' +
         '<div class="detalle ' + clase + '">Diferencia: ' + money(dif) + (dif > 0 ? ' (sobrante)' : dif < 0 ? ' (faltante)' : ' (exacto)') + '</div>' +
         (den ? '<div class="mt">' + den + '</div>' : '') +
         '<div class="acciones"><button class="btn sec chico" data-ver="' + c.id + '">Ver detalle</button>' +
@@ -287,6 +343,9 @@ const Historial = {
     const dif = c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia;
     const filas = (c.denominaciones || []).map((d) =>
       '<div class="detalle-denom"><span>' + money(d.denominacion) + ' × ' + d.cantidad + '</span><span>' + money(d.denominacion * d.cantidad) + '</span></div>').join('');
+    const detalleVales = (c.facturas && c.facturas.length)
+      ? c.facturas.map((f) => (f.concepto || 'Sin concepto') + ': ' + money(f.importe)).join('\n')
+      : '';
     const texto =
       'CUADRE DE CAJA\n' +
       'Fecha: ' + c.fecha + '\n' +
@@ -295,6 +354,7 @@ const Historial = {
       filas + '\n\n' +
       'Efectivo contado: ' + money(c.efectivoContado) + '\n' +
       'Vales/Facturas: ' + money(c.vales) + '\n' +
+      (detalleVales ? detalleVales + '\n' : '') +
       'Declarado: ' + (c.declarado === null || c.declarado === undefined ? '-' : money(c.declarado)) + '\n' +
       'Diferencia: ' + money(dif) + '\n';
     descargar('cuadre_' + c.fecha + '_' + c.id + '.txt', texto, 'text/plain');
@@ -305,13 +365,16 @@ const Historial = {
     if (!datos.length) { avisar('No hay cuadres para exportar.'); return; }
     const denoms = DB.denominaciones.todas();
     const enc = ['Fecha', 'Nombre', 'Turno'].concat(denoms.map((d) => '$' + denom(d) + ' (billetes)'))
-      .concat(['Efectivo contado', 'Vales/Facturas', 'Declarado', 'Diferencia']);
+      .concat(['Efectivo contado', 'Vales/Facturas', 'Detalle facturas', 'Declarado', 'Diferencia']);
     const filas = datos.map((c) => {
       const mapa = {};
       (c.denominaciones || []).forEach((d) => { mapa[d.denominacion] = d.cantidad; });
       const dif = c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia;
+      const detalle = (c.facturas && c.facturas.length)
+        ? c.facturas.map((f) => (f.concepto || 'Sin concepto') + ' ' + money(f.importe)).join(' | ')
+        : '';
       return [c.fecha, c.nombre || '', c.turno || ''].concat(denoms.map((d) => mapa[d] || 0))
-        .concat([c.efectivoContado, c.vales, c.declarado === null || c.declarado === undefined ? '' : c.declarado, dif]);
+        .concat([c.efectivoContado, c.vales, detalle, c.declarado === null || c.declarado === undefined ? '' : c.declarado, dif]);
     });
     descargar('cuadres_' + DB.hoy() + '.csv', csv(enc, filas));
     avisar('CSV de cuadres descargado.');

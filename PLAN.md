@@ -99,6 +99,20 @@ sw.js                   -> offline
   se compara contra Declarado para obtener la Diferencia.
 - El borrado repinta la seccion del boton que se presiono, no la vista activa.
 
+## Facturas multiples en el Cuadre
+- El campo "Vales / Facturas" dejo de ser un input unico: ahora es una lista
+  donde se agrega cada factura con "Concepto u observacion" + importe (boton +
+  o Enter). Sin limite de facturas.
+- El TOTAL sigue guardandose en el campo `vales` (numero): la lista
+  `facturas = [{concepto, importe}, ...]` es solo el desglose. Asi no cambia
+  el calculo de la diferencia ni el modelo de datos.
+- Retrocompatible: los cuadres viejos sin campo `facturas` se muestran igual
+  (solo total). No hay migracion.
+- Historial: el item muestra "Vales $X (N facturas)"; "Ver detalle" (.txt) y el
+  CSV incluyen el desglose (CSV: columna "Detalle facturas" con
+  `Concepto $importe | Concepto $importe`).
+- Concepto vacio se muestra como "Sin concepto". Importe 0 o vacio se rechaza.
+
 ## Como probarlo en la PC antes de subirlo
 ```bash
 cd /home/mitsu/caja-stbx

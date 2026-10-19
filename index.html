@@ -54,15 +54,21 @@
 
     <div class="card">
       <h2>Resumen</h2>
-      <div class="grid grid-2">
-        <div>
-          <label for="c-vales">Vales / Facturas</label>
-          <input type="number" id="c-vales" inputmode="decimal" step="0.01" min="0" value="0" placeholder="0.00">
+
+      <div class="facturas">
+        <label>Vales / Facturas</label>
+        <p class="detalle" style="margin-top:0">Agrega cada vale o factura con su concepto. El total se suma solo.</p>
+        <div class="factura-form">
+          <input type="text" id="c-fac-concepto" placeholder="Concepto u observacion (opcional)" autocomplete="off">
+          <input type="number" id="c-fac-importe" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+          <button type="button" id="c-fac-agregar" class="btn sec chico" aria-label="Agregar factura">+</button>
         </div>
-        <div>
-          <label for="c-declarado">Declarado (opcional)</label>
-          <input type="number" id="c-declarado" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
-        </div>
+        <div id="c-facturas-lista" class="facturas-lista"></div>
+      </div>
+
+      <div class="mt">
+        <label for="c-declarado">Declarado (opcional)</label>
+        <input type="number" id="c-declarado" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
       </div>
 
       <div class="totales">
