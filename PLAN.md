@@ -75,7 +75,7 @@ sw.js                   -> offline
 - Negativos se muestran como `-$1,234.50` (signo antes del simbolo).
 - Las denominaciones usan un formato compacto propio: `$1000`, `$0.50`.
 - Campos de un cuadre: fecha, nombre, turno, denominaciones[], efectivoContado,
-  vales, declarado, diferencia. OJO: se renombraron `encargado` -> `nombre`,
+  tillsCantidad, tillBase, tills, vales, declarado, diferencia. OJO: se renombraron `encargado` -> `nombre`,
   `real` -> `declarado`, y el `turno` paso de ser un nombre a ser
   Apertura/Cierre. No hay migracion: los cuadres guardados con los nombres
   viejos de campo mostraran esos valores vacios.
@@ -112,6 +112,18 @@ sw.js                   -> offline
   CSV incluyen el desglose (CSV: columna "Detalle facturas" con
   `Concepto $importe | Concepto $importe`).
 - Concepto vacio se muestra como "Sin concepto". Importe 0 o vacio se rechaza.
+
+## Tills (cajas de $1,000)
+- Cada till es una caja/cajon con un fondo fijo de $1,000 que se entrega al
+  barista. Ese efectivo YA esta dentro del conteo por denominacion.
+- La app captura solo la CANTIDAD de tills; el importe se calcula como
+  `tillsCantidad * 1000` y se guarda en `tillsCantidad`, `tillBase` y `tills`.
+- Los tills son un desglose informativo: NO se suman otra vez al efectivo
+  contado ni cambian la formula de la diferencia
+  (`declarado - (efectivoContado - vales)`).
+- Se muestran arriba de Vales/Facturas, con subtotal y nota de que ya estan
+  incluidas. El historial, el detalle .txt y el CSV tambien las incluyen.
+- Retrocompatible: cuadres viejos sin tills se leen como 0, sin migracion.
 
 ## Como probarlo en la PC antes de subirlo
 ```bash

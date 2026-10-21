@@ -55,6 +55,19 @@
     <div class="card">
       <h2>Resumen</h2>
 
+      <div class="tills">
+        <label for="c-tills-cantidad">Tills (cajas de $1,000)</label>
+        <p class="detalle" style="margin-top:0">Es efectivo que ya está incluido en el conteo por denominación.</p>
+        <div class="tills-fila">
+          <div class="ctrl">
+            <button type="button" data-tills-acc="menos" aria-label="Quitar till">−</button>
+            <input type="number" id="c-tills-cantidad" inputmode="numeric" min="0" step="1" value="0" aria-label="Cantidad de tills">
+            <button type="button" data-tills-acc="mas" aria-label="Agregar till">+</button>
+          </div>
+          <span class="tills-sub" id="c-t-tills-sub">$0.00</span>
+        </div>
+      </div>
+
       <div class="facturas">
         <label>Vales / Facturas</label>
         <p class="detalle" style="margin-top:0">Agrega cada vale o factura con su concepto. El total se suma solo.</p>
@@ -67,7 +80,7 @@
       </div>
 
       <div class="mt">
-        <label for="c-declarado">Declarado (opcional)</label>
+        <label for="c-declarado">Declarado</label>
         <input type="number" id="c-declarado" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
       </div>
 
@@ -75,6 +88,10 @@
         <div class="renglon">
           <span>Efectivo contado</span>
           <span class="monto" id="c-t-contado">$0.00</span>
+        </div>
+        <div class="renglon">
+          <span>Tills (incluidas en el conteo)</span>
+          <span class="monto" id="c-t-tills">$0.00</span>
         </div>
         <div class="renglon">
           <span>Vales / Facturas</span>

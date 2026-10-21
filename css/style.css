@@ -220,14 +220,16 @@ input:focus, select:focus, textarea:focus {
   font-size: .95rem;
 }
 
-.denominacion .ctrl {
+.denominacion .ctrl,
+.tills-fila .ctrl {
   display: flex;
   align-items: center;
   gap: 6px;
   flex: 1;
 }
 
-.denominacion .ctrl button {
+.denominacion .ctrl button,
+.tills-fila .ctrl button {
   width: 42px;
   height: 42px;
   flex: none;
@@ -241,9 +243,11 @@ input:focus, select:focus, textarea:focus {
   line-height: 1;
 }
 
-.denominacion .ctrl button:active { background: var(--verde-claro); }
+.denominacion .ctrl button:active,
+.tills-fila .ctrl button:active { background: var(--verde-claro); }
 
-.denominacion input {
+.denominacion input,
+.tills-fila input {
   flex: 1;
   min-width: 0;
   text-align: center;
@@ -254,7 +258,9 @@ input:focus, select:focus, textarea:focus {
 }
 
 .denominacion input::-webkit-outer-spin-button,
-.denominacion input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.denominacion input::-webkit-inner-spin-button,
+.tills-fila input::-webkit-outer-spin-button,
+.tills-fila input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
 .denominacion .sub {
   width: 82px;
@@ -263,6 +269,24 @@ input:focus, select:focus, textarea:focus {
   font-size: .85rem;
   color: var(--gris);
   font-weight: 600;
+}
+
+.tills { margin-bottom: 14px; }
+
+.tills-fila {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tills-sub {
+  width: 92px;
+  flex: none;
+  text-align: right;
+  font-size: .95rem;
+  color: var(--verde);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .totales { margin-top: 14px; border-top: 2px solid var(--verde); padding-top: 12px; }

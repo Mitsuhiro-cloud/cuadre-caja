@@ -19,7 +19,7 @@ sin CDN, sin paso de compilación.
 | **Demo en vivo** | https://mitsuhiro-cloud.github.io/cuadre-caja/ |
 | **Tecnologías** | HTML5 · CSS3 · JavaScript (ES6+) · PWA |
 | **Peso total** | ~1,600 líneas de código |
-| **Pruebas** | 168 automáticas, todas en verde |
+| **Pruebas** | 224 automáticas, todas en verde |
 | **Dependencias** | ninguna |
 
 ---
@@ -30,6 +30,7 @@ sin CDN, sin paso de compilación.
 - Conteo por denominación con botones `+` / `−` y campo numérico directo.
 - Se aceptan decimales y se ignoran los negativos.
 - Cálculo automático del efectivo contado.
+- **Tills**: número de cajas con fondo fijo de $1,000, ya incluidas en el conteo.
 - **Diferencia** contra el monto declarado por la otra persona.
 - Nota que explica cómo se calculó la diferencia.
 
@@ -157,7 +158,7 @@ de tu computadora: `http://192.168.X.X:8000`
 
 ## Pruebas
 
-El proyecto incluye una suite de **168 pruebas automáticas** que verifican los
+El proyecto incluye una suite de **224 pruebas automáticas** que verifican los
 cálculos de efectivo, la validación de datos, el historial, los préstamos, los
 tickets, el catálogo de tiendas, la migración de datos antiguos y la
 accesibilidad de los colores de estado.
@@ -167,7 +168,7 @@ npm install     # instala jsdom (única dependencia, solo para pruebas)
 npm test
 ```
 
-Resultado esperado: `*** TODAS LAS PRUEBAS PASARON ***` (168 pruebas).
+Resultado esperado: `*** TODAS LAS PRUEBAS PASARON ***` (224 pruebas).
 
 ---
 

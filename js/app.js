@@ -9,6 +9,15 @@ const money = (n) => {
   return (v < 0 ? '-$' : '$') + txt;
 };
 
+// Todo el dinero se calcula en centavos enteros: los floats (0.1 + 0.2) generan
+// residuos que rompen comparaciones de diferencia en $0.00.
+const cents = (n) => Math.round((Number(n) || 0) * 100);
+
+// Cada till (cajon/caja registradora) lleva un fondo fijo de $1,000.
+const TILL_BASE = 1000;
+
+const plural = (n, singular, pluralTxt) => n + ' ' + (n === 1 ? singular : pluralTxt);
+
 const denom = (n) => {
   const v = Number(n) || 0;
   return Number.isInteger(v) ? String(v) : v.toFixed(2);
@@ -91,11 +100,19 @@ window.addEventListener('hashchange', () => irA(location.hash.slice(1)));
 const Cuadre = {
   conteos: {},
   facturas: [],
+  tillsCantidad: 0,
 
   init() {
     $('#c-fecha').value = DB.hoy();
     this.pintarDenominaciones();
     $('#c-declarado').addEventListener('input', () => this.recalcular());
+    $('#c-tills-cantidad').addEventListener('input', () => this.actualizarTills());
+    $$('[data-tills-acc]').forEach((b) => b.addEventListener('click', () => {
+      const input = $('#c-tills-cantidad');
+      const paso = b.dataset.tillsAcc === 'mas' ? 1 : -1;
+      input.value = Math.max(0, Math.floor(num(input.value) || 0) + paso);
+      this.actualizarTills();
+    }));
     $('#c-fac-agregar').addEventListener('click', () => this.agregarFactura());
     ['#c-fac-concepto', '#c-fac-importe'].forEach((s) => {
       $(s).addEventListener('keydown', (e) => {
@@ -109,6 +126,7 @@ const Cuadre = {
       if (b) this.borrarFactura(Number(b.dataset.facDel));
     });
     this.pintarFacturas();
+    this.actualizarTills();
   },
 
   pintarDenominaciones() {
@@ -148,13 +166,30 @@ const Cuadre = {
       i.value = cant;
       this.conteos[d] = cant;
       const sub = document.querySelector('[data-sub="' + d + '"]');
-      if (sub) sub.textContent = money(d * cant);
+      if (sub) sub.textContent = money(cents(d) * cant / 100);
     });
     this.recalcular();
   },
 
+  actualizarTills() {
+    const input = $('#c-tills-cantidad');
+    const cant = Math.max(0, Math.floor(num(input.value) || 0));
+    input.value = cant;
+    this.tillsCantidad = cant;
+    $('#c-t-tills-sub').textContent = money(this.tillsCents() / 100);
+    this.recalcular();
+  },
+
+  tillsCents() {
+    return cents(TILL_BASE) * this.tillsCantidad;
+  },
+
+  totalValesCents() {
+    return this.facturas.reduce((a, f) => a + cents(f.importe), 0);
+  },
+
   totalVales() {
-    return this.facturas.reduce((a, f) => a + (Number(f.importe) || 0), 0);
+    return this.totalValesCents() / 100;
   },
 
   agregarFactura() {
@@ -192,27 +227,30 @@ const Cuadre = {
   },
 
   recalcular() {
-    let contado = 0;
-    for (const d in this.conteos) contado += Number(d) * this.conteos[d];
-    const vales = this.totalVales();
+    let contadoC = 0;
+    for (const d in this.conteos) contadoC += cents(d) * this.conteos[d];
+    const tillsC = this.tillsCents();
+    const valesC = this.totalValesCents();
     const declarado = $('#c-declarado').value === '' ? null : num($('#c-declarado').value);
-    const dif = declarado === null ? null : declarado - (contado - vales);
+    const declaradoC = declarado === null ? null : cents(declarado);
+    const difC = declaradoC === null ? null : declaradoC - (contadoC - valesC);
 
-    $('#c-t-contado').textContent = money(contado);
-    $('#c-t-vales').textContent = money(vales);
-    $('#c-t-declarado').textContent = declarado === null ? '—' : money(declarado);
+    $('#c-t-contado').textContent = money(contadoC / 100);
+    $('#c-t-tills').textContent = money(tillsC / 100);
+    $('#c-t-vales').textContent = money(valesC / 100);
+    $('#c-t-declarado').textContent = declaradoC === null ? '—' : money(declaradoC / 100);
 
     const el = $('#c-t-dif');
-    el.textContent = dif === null ? money(vales - contado) : money(dif);
-    el.className = 'monto ' + (dif === null ? (vales - contado === 0 ? '' : 'neg') : dif === 0 ? '' : dif > 0 ? 'pos' : 'neg');
+    el.textContent = money((difC === null ? valesC - contadoC : difC) / 100);
+    el.className = 'monto ' + (difC === null ? (valesC - contadoC === 0 ? '' : 'neg') : difC === 0 ? '' : difC > 0 ? 'pos' : 'neg');
 
     const nota = $('#c-nota-dif');
-    if (dif === null) {
+    if (difC === null) {
       nota.textContent = 'Falta el monto declarado: el conteo de la otra persona. Capturalo para ver la diferencia.';
-    } else if (dif === 0) {
+    } else if (difC === 0) {
       nota.textContent = 'Cuadre exacto: no hay diferencia.';
     } else {
-      nota.textContent = dif > 0 ? 'Sobrante de ' + money(dif) + ' en caja.' : 'Faltante de ' + money(Math.abs(dif)) + ' en caja.';
+      nota.textContent = difC > 0 ? 'Sobrante de ' + money(difC / 100) + ' en caja.' : 'Faltante de ' + money(-difC / 100) + ' en caja.';
     }
   },
 
@@ -222,24 +260,31 @@ const Cuadre = {
       avisar('Captura al menos un billete o moneda.');
       return;
     }
-    const vales = this.totalVales();
+    const valesC = this.totalValesCents();
     const declarado = $('#c-declarado').value === '' ? null : num($('#c-declarado').value);
-    let contado = 0;
-    denoms.forEach((d) => { contado += d.denominacion * d.cantidad; });
+    const tillsCantidad = Math.max(0, Math.floor(num($('#c-tills-cantidad').value) || 0));
+    const tillsC = cents(TILL_BASE) * tillsCantidad;
+    this.tillsCantidad = tillsCantidad;
+    let contadoC = 0;
+    denoms.forEach((d) => { contadoC += cents(d.denominacion) * d.cantidad; });
+    const difC = declarado === null ? null : cents(declarado) - (contadoC - valesC);
 
     DB.cuadres.guardar({
       fecha: $('#c-fecha').value || DB.hoy(),
       nombre: $('#c-nombre').value.trim(),
       turno: $('#c-turno').value,
       denominaciones: denoms,
-      efectivoContado: contado,
-      vales: vales,
+      efectivoContado: contadoC / 100,
+      tillsCantidad: tillsCantidad,
+      tillBase: TILL_BASE,
+      tills: tillsC / 100,
+      vales: valesC / 100,
       facturas: this.facturas.slice(),
-      declarado: declarado,
-      diferencia: declarado === null ? null : declarado - (contado - vales)
+      declarado: declarado === null ? null : cents(declarado) / 100,
+      diferencia: difC === null ? null : difC / 100
     });
 
-    avisar('Cuadre guardado: diferencia ' + money(declarado === null ? vales - contado : declarado - (contado - vales)));
+    avisar('Cuadre guardado: diferencia ' + money((difC === null ? valesC - contadoC : difC) / 100));
     this.limpiar();
   },
 
@@ -247,13 +292,15 @@ const Cuadre = {
     this.pintarDenominaciones();
     this.facturas = [];
     this.pintarFacturas();
+    $('#c-tills-cantidad').value = '0';
+    this.tillsCantidad = 0;
     $('#c-fac-concepto').value = '';
     $('#c-fac-importe').value = '';
     $('#c-declarado').value = '';
     $('#c-nombre').value = '';
     $('#c-turno').value = 'Apertura';
     $('#c-fecha').value = DB.hoy();
-    this.recalcular();
+    this.actualizarTills();
   }
 };
 
@@ -296,16 +343,17 @@ const Historial = {
   pintarResumen() {
     const todos = DB.cuadres.todos();
     if (!todos.length) { $('#h-resumen').innerHTML = ''; return; }
-    const dif = todos.map((c) => (c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia));
-    const suma = dif.reduce((a, b) => a + b, 0);
-    const faltantes = dif.filter((d) => d < 0).reduce((a, b) => a + b, 0);
-    const sobrantes = dif.filter((d) => d > 0).reduce((a, b) => a + b, 0);
+    const difC = todos.map((c) => (c.diferencia === null ? cents(c.vales) - cents(c.efectivoContado) : cents(c.diferencia)));
+    const sumaC = difC.reduce((a, b) => a + b, 0);
+    const faltantesC = difC.filter((d) => d < 0).reduce((a, b) => a + b, 0);
+    const sobrantesC = difC.filter((d) => d > 0).reduce((a, b) => a + b, 0);
     $('#h-resumen').innerHTML =
       '<div class="renglon"><span>Cuadres registrados</span><span class="monto">' + todos.length + '</span></div>' +
-      '<div class="renglon"><span>Efectivo contado total</span><span class="monto">' + money(todos.reduce((a, c) => a + num(c.efectivoContado), 0)) + '</span></div>' +
-      '<div class="renglon"><span>Total faltantes</span><span class="monto neg">' + money(faltantes) + '</span></div>' +
-      '<div class="renglon"><span>Total sobrantes</span><span class="monto pos">' + money(sobrantes) + '</span></div>' +
-      '<div class="renglon diferencia"><span>Diferencia acumulada</span><span class="monto ' + (suma < 0 ? 'neg' : suma > 0 ? 'pos' : '') + '">' + money(suma) + '</span></div>';
+      '<div class="renglon"><span>Efectivo contado total</span><span class="monto">' + money(todos.reduce((a, c) => a + cents(c.efectivoContado), 0) / 100) + '</span></div>' +
+      '<div class="renglon"><span>Tills incluidas en el conteo</span><span class="monto">' + money(todos.reduce((a, c) => a + cents(c.tills), 0) / 100) + '</span></div>' +
+      '<div class="renglon"><span>Total faltantes</span><span class="monto neg">' + money(faltantesC / 100) + '</span></div>' +
+      '<div class="renglon"><span>Total sobrantes</span><span class="monto pos">' + money(sobrantesC / 100) + '</span></div>' +
+      '<div class="renglon diferencia"><span>Diferencia acumulada</span><span class="monto ' + (sumaC < 0 ? 'neg' : sumaC > 0 ? 'pos' : '') + '">' + money(sumaC / 100) + '</span></div>';
   },
 
   pintar() {
@@ -318,15 +366,18 @@ const Historial = {
       return;
     }
     cont.innerHTML = datos.map((c) => {
-      const dif = c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia;
-      const clase = dif === 0 ? '' : dif > 0 ? 'pos' : 'neg';
+      const difC = c.diferencia === null ? cents(c.vales) - cents(c.efectivoContado) : cents(c.diferencia);
+      const dif = difC / 100;
+      const clase = difC === 0 ? '' : difC > 0 ? 'pos' : 'neg';
       const den = (c.denominaciones || []).filter((d) => d.cantidad > 0)
         .map((d) => '<div class="detalle-denom"><span>' + money(d.denominacion) + ' × ' + d.cantidad + '</span><span>' + money(d.denominacion * d.cantidad) + '</span></div>').join('');
       return '<div class="item">' +
         '<div class="cab"><div class="titulo">' + esc(fechaCorta(c.fecha)) + (c.turno ? ' · ' + esc(c.turno) : '') + '</div>' +
         '<span class="pill">Diferencia ' + money(dif) + '</span></div>' +
         (c.nombre ? '<div class="meta">' + esc(c.nombre) + '</div>' : '') +
-        '<div class="detalle">Efectivo contado <b>' + money(c.efectivoContado) + '</b> · Vales <b>' + money(c.vales) + '</b>' +
+        '<div class="detalle">Efectivo contado <b>' + money(c.efectivoContado) + '</b> · Tills <b>' + money(c.tills) + '</b>' +
+          (c.tillsCantidad ? ' (' + plural(c.tillsCantidad, 'caja', 'cajas') + ')' : '') +
+          ' · Vales <b>' + money(c.vales) + '</b>' +
           ((c.facturas && c.facturas.length) ? ' (' + c.facturas.length + ' factura' + (c.facturas.length === 1 ? '' : 's') + ')' : '') +
           ' · Declarado <b>' + (c.declarado === null || c.declarado === undefined ? '—' : money(c.declarado)) + '</b></div>' +
         '<div class="detalle ' + clase + '">Diferencia: ' + money(dif) + (dif > 0 ? ' (sobrante)' : dif < 0 ? ' (faltante)' : ' (exacto)') + '</div>' +
@@ -340,7 +391,8 @@ const Historial = {
   verDetalle(idCuadre) {
     const c = DB.cuadres.todos().find((x) => x.id === idCuadre);
     if (!c) return;
-    const dif = c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia;
+    const difC = c.diferencia === null ? cents(c.vales) - cents(c.efectivoContado) : cents(c.diferencia);
+    const dif = difC / 100;
     const filas = (c.denominaciones || []).map((d) =>
       '<div class="detalle-denom"><span>' + money(d.denominacion) + ' × ' + d.cantidad + '</span><span>' + money(d.denominacion * d.cantidad) + '</span></div>').join('');
     const detalleVales = (c.facturas && c.facturas.length)
@@ -353,6 +405,7 @@ const Historial = {
       'Turno: ' + (c.turno || '-') + '\n\n' +
       filas + '\n\n' +
       'Efectivo contado: ' + money(c.efectivoContado) + '\n' +
+      'Tills: ' + money(c.tills) + (c.tillsCantidad ? ' (' + plural(c.tillsCantidad, 'caja', 'cajas') + ' de ' + money(c.tillBase || TILL_BASE) + ')' : '') + '\n' +
       'Vales/Facturas: ' + money(c.vales) + '\n' +
       (detalleVales ? detalleVales + '\n' : '') +
       'Declarado: ' + (c.declarado === null || c.declarado === undefined ? '-' : money(c.declarado)) + '\n' +
@@ -365,16 +418,17 @@ const Historial = {
     if (!datos.length) { avisar('No hay cuadres para exportar.'); return; }
     const denoms = DB.denominaciones.todas();
     const enc = ['Fecha', 'Nombre', 'Turno'].concat(denoms.map((d) => '$' + denom(d) + ' (billetes)'))
-      .concat(['Efectivo contado', 'Vales/Facturas', 'Detalle facturas', 'Declarado', 'Diferencia']);
+      .concat(['Efectivo contado', 'Tills (cajas)', 'Tills', 'Vales/Facturas', 'Detalle facturas', 'Declarado', 'Diferencia']);
     const filas = datos.map((c) => {
       const mapa = {};
       (c.denominaciones || []).forEach((d) => { mapa[d.denominacion] = d.cantidad; });
-      const dif = c.diferencia === null ? c.vales - c.efectivoContado : c.diferencia;
+      const difC = c.diferencia === null ? cents(c.vales) - cents(c.efectivoContado) : cents(c.diferencia);
+      const dif = difC / 100;
       const detalle = (c.facturas && c.facturas.length)
         ? c.facturas.map((f) => (f.concepto || 'Sin concepto') + ' ' + money(f.importe)).join(' | ')
         : '';
       return [c.fecha, c.nombre || '', c.turno || ''].concat(denoms.map((d) => mapa[d] || 0))
-        .concat([c.efectivoContado, c.vales, detalle, c.declarado === null || c.declarado === undefined ? '' : c.declarado, dif]);
+        .concat([c.efectivoContado, c.tillsCantidad || 0, c.tills || 0, c.vales, detalle, c.declarado === null || c.declarado === undefined ? '' : c.declarado, dif]);
     });
     descargar('cuadres_' + DB.hoy() + '.csv', csv(enc, filas));
     avisar('CSV de cuadres descargado.');
